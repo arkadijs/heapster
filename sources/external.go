@@ -10,13 +10,23 @@ import (
 )
 
 // While updating this, also update heapster/deploy/Dockerfile.
+// { "port": 4194, "hosts": { "core-1": "10.21.2.64", "core-2": "10.21.1.233", "core-3": "10.21.2.65" } }
 const HostsFile = "/var/run/heapster/hosts"
 
 type ExternalSource struct {
 	cadvisor *cadvisorSource
+	kube *KubeSource
 }
 
 func (self *ExternalSource) getCadvisorHosts() (*CadvisorHosts, error) {
+	if self.kube != nil {
+		nodes, err := self.kube.listMinions()
+		if err != nil {
+			return nil, err
+		}
+		hosts := CadvisorHosts(*nodes)
+		return &hosts, nil
+	}
 	fi, err := os.Stat(HostsFile)
 	if err != nil {
 		return nil, err
@@ -58,12 +68,15 @@ func (self *ExternalSource) GetInfo() (ContainerData, error) {
 	}, nil
 }
 
-func newExternalSource() (Source, error) {
-	if _, err := os.Stat(HostsFile); err != nil {
-		return nil, fmt.Errorf("Cannot stat hosts_file %s. Error: %s", HostsFile, err)
+func newExternalSource(kubeSource *KubeSource) (Source, error) {
+	if kubeSource == nil {
+		if _, err := os.Stat(HostsFile); err != nil {
+			return nil, fmt.Errorf("Cannot stat hosts_file %s. Error: %s", HostsFile, err)
+		}
 	}
 	cadvisorSource := newCadvisorSource()
 	return &ExternalSource{
 		cadvisor: cadvisorSource,
+		kube: kubeSource,
 	}, nil
 }

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/heapster/sinks"
-	"github.com/GoogleCloudPlatform/heapster/sources"
+	srcs "github.com/GoogleCloudPlatform/heapster/sources"
 	"github.com/golang/glog"
 )
 
@@ -16,7 +16,7 @@ var argPollDuration = flag.Duration("poll_duration", 10*time.Second, "Polling du
 func main() {
 	flag.Parse()
 	glog.Infof(strings.Join(os.Args, " "))
-	glog.Infof("Heapster version %v", heapsterVersion)
+	glog.Infof("Heapster version %v https://github.com/arkadijs/heapster", heapsterVersion)
 	err := doWork()
 	if err != nil {
 		glog.Error(err)
@@ -26,7 +26,7 @@ func main() {
 }
 
 func doWork() error {
-	source, err := sources.NewSource()
+	sources, err := srcs.NewSources()
 	if err != nil {
 		return err
 	}
@@ -39,12 +39,17 @@ func doWork() error {
 	for {
 		select {
 		case <-ticker.C:
-			data, err := source.GetInfo()
-			if err != nil {
-				return err
-			}
-			if err := sink.StoreData(data); err != nil {
-				return err
+			for _, source := range sources {
+				data, err := source.GetInfo()
+				if err != nil {
+					println(err)
+					glog.Error(err)
+					continue
+				}
+				if err := sink.StoreData(data); err != nil {
+					println(err)
+					glog.Error(err)
+				}
 			}
 		}
 	}

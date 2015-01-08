@@ -56,10 +56,23 @@ type Source interface {
 	GetInfo() (ContainerData, error)
 }
 
-func NewSource() (Source, error) {
+func NewSources() ([]Source, error) {
 	if len(*argMaster) > 0 {
-		return newKubeSource()
+		kube, err := newKubeSource()
+		if err != nil {
+			return nil, err
+		}
+		ext, err := newExternalSource(kube)
+		if err != nil {
+			return nil, err
+		}
+
+		return []Source{kube, ext}, nil
 	} else {
-		return newExternalSource()
+		ext, err := newExternalSource(nil)
+		if err != nil {
+			return nil, err
+		}
+		return []Source{ext}, nil
 	}
 }
