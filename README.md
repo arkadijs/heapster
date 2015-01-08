@@ -64,7 +64,15 @@ To start monitoring the cluster using grafana, find out the the external IP of t
 
 To access the Influxdb UI visit  `http://<minion-ip>:8083`.
 
+**Step 6: Create CPU usage [continuous query](http://influxdb.com/docs/v0.8/api/continuous_queries.html)**
+
+For _All containers CPU usage_ graph, connect to Influxdb UI, open `k8s` database and execute:
+
+    select container_name, derivative(cpu_cumulative_usage) as cpu_usage
+        from stats group by time(10s), container_name, hostname into cpu_stats
+
 #####Hints
+
 * Grafana's default username and password is 'admin'. You can change that by modifying the grafana container [here](influx-grafana/deploy/grafana-influxdb-pod.json)
 * To enable memory and swap accounting on the minions follow the instructions [here](https://docs.docker.com/installation/ubuntulinux/#memory-and-swap-accounting)
 
