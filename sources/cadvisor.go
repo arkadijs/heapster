@@ -3,6 +3,7 @@ package sources
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -32,7 +33,7 @@ func (self *cadvisorSource) getAllCadvisorData(hostname, ip, port, container str
 	if err != nil {
 		return
 	}
-	allContainers, err := client.SubcontainersInfo("/", 
+	allContainers, err := client.AllDockerContainers(
 		&cadvisor.ContainerInfoRequest{NumStats: int(time.Since(self.lastQuery) / time.Second)})
 	if err != nil {
 		glog.Errorf("failed to get stats from cadvisor on host %s with ip %s - %s\n", hostname, ip, err)
@@ -40,11 +41,9 @@ func (self *cadvisorSource) getAllCadvisorData(hostname, ip, port, container str
 	}
 
 	for _, containerInfo := range allContainers {
-		rawContainer := self.processStat(hostname, &containerInfo)
-		if containerInfo.Name == "/" {
-			nodeInfo = rawContainer
-		} else {
-			containers = append(containers, rawContainer)
+		container := self.processStat(hostname, &containerInfo)
+		if !strings.HasPrefix(container.Name, "k8s_") {
+			containers = append(containers, container)
 		}
 	}
 
@@ -53,12 +52,11 @@ func (self *cadvisorSource) getAllCadvisorData(hostname, ip, port, container str
 
 func (self *cadvisorSource) fetchData(cadvisorHosts *CadvisorHosts) (rawContainers []RawContainer, nodesInfo []RawContainer, err error) {
 	for hostname, ip := range cadvisorHosts.Hosts {
-		containers, nodeInfo, err := self.getAllCadvisorData(hostname, ip, strconv.Itoa(cadvisorHosts.Port), "/")
+		containers, _, err := self.getAllCadvisorData(hostname, ip, strconv.Itoa(cadvisorHosts.Port), "/")
 		if err != nil {
 			return nil, nil, fmt.Errorf("Failed to get cAdvisor data from host %q: %v", hostname, err)
 		}
 		rawContainers = append(rawContainers, containers...)
-		nodesInfo = append(nodesInfo, nodeInfo)
 	}
 
 	return
