@@ -28,7 +28,7 @@ dir = "/data/db"
 # will still be logged and once the local storage has caught up (or compacted) the writes
 # will be replayed from the WAL
 write-buffer-size = 10000
-default-engine = "leveldb"
+default-engine = "rocksdb"
 max-open-shards = 0
 point-batch-size = 100
 write-batch-size = 5000000
