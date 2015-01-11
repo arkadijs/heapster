@@ -423,7 +423,7 @@
               "function": "derivative",
               "column": "cpu_cumulative_usage",
               "series": "stats",
-              "query": "select container_name, derivative(cpu_cumulative_usage) from \"stats\" and labels =~ /name:influxGrafana/ where $timeFilter group by time($interval), container_name order asc",
+              "query": "select container_name, derivative(cpu_cumulative_usage) from \"stats\" where $timeFilter and labels =~ /name:influxGrafana/ group by time($interval), container_name order asc",
               "condition_filter": true,
               "condition": "labels =~ /name:influxGrafana/",
               "interval": "2s",
