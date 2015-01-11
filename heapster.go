@@ -11,8 +11,6 @@ import (
 	"github.com/golang/glog"
 )
 
-var argPollDuration = flag.Duration("poll_duration", 10*time.Second, "Polling duration")
-
 func main() {
 	flag.Parse()
 	glog.Infof(strings.Join(os.Args, " "))
@@ -34,7 +32,7 @@ func doWork() error {
 	if err != nil {
 		return err
 	}
-	ticker := time.NewTicker(*argPollDuration)
+	ticker := time.NewTicker(*srcs.ArgPollDuration)
 	defer ticker.Stop()
 	for {
 		select {

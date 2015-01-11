@@ -3,11 +3,13 @@ package sources
 import (
 	"flag"
 	cadvisor "github.com/google/cadvisor/info"
+	"time"
 )
 
 var (
-	argMaster      = flag.String("kubernetes_master", "", "Kubernetes master IP")
-	argKubeletPort = flag.String("kubelet_port", "10250", "Kubelet port")
+	ArgPollDuration = flag.Duration("poll_duration", 10*time.Second, "Polling duration")
+	argMaster       = flag.String("kubernetes_master", "", "Kubernetes master IP")
+	argKubeletPort  = flag.String("kubelet_port", "10250", "Kubelet port")
 )
 
 type Container struct {

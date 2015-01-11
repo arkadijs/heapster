@@ -1,12 +1,12 @@
 package sources
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
-	"net/url"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	kube_api "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -23,9 +23,10 @@ var kubeVersions = []string{"v0.3"}
 const cadvisorPort = 4194
 
 type KubeSource struct {
-	client      *kube_client.Client
-	lastQuery   time.Time
-	kubeletPort string
+	client       *kube_client.Client
+	lastQuery    time.Time
+	pollDuration time.Duration
+	kubeletPort  string
 }
 
 type nodeList CadvisorHosts
@@ -92,16 +93,22 @@ func (self *KubeSource) getPods() ([]Pod, error) {
 	return out, nil
 }
 
-func (self *KubeSource) getStatsFromKubelet(hostIP, podName, podID, containerName string) (cadvisor.ContainerSpec, []*cadvisor.ContainerStats, error) {
+func (self *KubeSource) getStatsFromKubelet(hostIP string, podName string, podID string, containerName string, numStats int) (cadvisor.ContainerSpec, []*cadvisor.ContainerStats, error) {
 	var containerInfo cadvisor.ContainerInfo
-	values := url.Values{}
-	values.Add("num_stats", strconv.Itoa(int(time.Since(self.lastQuery)/time.Second)))
-	url := "http://" + hostIP + ":" + self.kubeletPort + filepath.Join("/stats", podName, containerName) + "?" + values.Encode()
-	req, err := http.NewRequest("GET", url, nil)
+	body, err := json.Marshal(cadvisor.ContainerInfoRequest{NumStats: numStats})
 	if err != nil {
 		return cadvisor.ContainerSpec{}, []*cadvisor.ContainerStats{}, err
 	}
-	err = PostRequestAndGetValue(&http.Client{}, req, &containerInfo)
+	url := fmt.Sprintf("http://%s:%s%s", hostIP, self.kubeletPort, filepath.Join("/stats", podName, containerName))
+	if containerName == "/" {
+		url += "/"
+	}
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	if err != nil {
+		return cadvisor.ContainerSpec{}, []*cadvisor.ContainerStats{}, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	err = PostRequestAndGetValue(http.DefaultClient, req, &containerInfo)
 	if err != nil {
 		glog.Errorf("failed to get stats from kubelet url: %s - %s\n", url, err)
 		return cadvisor.ContainerSpec{}, []*cadvisor.ContainerStats{}, nil
@@ -110,14 +117,14 @@ func (self *KubeSource) getStatsFromKubelet(hostIP, podName, podID, containerNam
 	return containerInfo.Spec, containerInfo.Stats, nil
 }
 
-func (self *KubeSource) getNodesInfo() ([]RawContainer, error) {
+func (self *KubeSource) getNodesInfo(numStats int) ([]RawContainer, error) {
 	kubeNodes, err := self.listMinions()
 	if err != nil {
 		return []RawContainer{}, err
 	}
 	nodesInfo := []RawContainer{}
 	for node, ip := range kubeNodes.Hosts {
-		spec, stats, err := self.getStatsFromKubelet(ip, "", "", "/")
+		spec, stats, err := self.getStatsFromKubelet(ip, "", "", "/", numStats)
 		if err != nil {
 			return []RawContainer{}, err
 		}
@@ -135,6 +142,11 @@ func (self *KubeSource) GetInfo() (ContainerData, error) {
 	if err != nil {
 		return ContainerData{}, err
 	}
+	duration := time.Since(self.lastQuery)
+	if duration < self.pollDuration {
+		duration = self.pollDuration
+	}
+	numStats := int(duration / time.Second)
 	for _, pod := range pods {
 		addrs, err := net.LookupIP(pod.Hostname)
 		if err != nil {
@@ -143,7 +155,7 @@ func (self *KubeSource) GetInfo() (ContainerData, error) {
 		}
 		hostIP := addrs[0].String()
 		for _, container := range pod.Containers {
-			spec, stats, err := self.getStatsFromKubelet(hostIP, pod.Name, pod.ID, container.Name)
+			spec, stats, err := self.getStatsFromKubelet(hostIP, pod.Name, pod.ID, container.Name, numStats)
 			if err != nil {
 				return ContainerData{}, err
 			}
@@ -151,7 +163,7 @@ func (self *KubeSource) GetInfo() (ContainerData, error) {
 			container.Spec = spec
 		}
 	}
-	nodesInfo, err := self.getNodesInfo()
+	nodesInfo, err := self.getNodesInfo(numStats)
 	if err != nil {
 		return ContainerData{}, err
 	}
@@ -172,8 +184,9 @@ func newKubeSource() (*KubeSource, error) {
 	})
 
 	return &KubeSource{
-		client:      kubeClient,
-		lastQuery:   time.Now(),
-		kubeletPort: *argKubeletPort,
+		client:       kubeClient,
+		lastQuery:    time.Now(),
+		pollDuration: *ArgPollDuration,
+		kubeletPort:  *argKubeletPort,
 	}, nil
 }
