@@ -15,7 +15,7 @@ const HostsFile = "/var/run/heapster/hosts"
 
 type ExternalSource struct {
 	cadvisor *cadvisorSource
-	kube *KubeSource
+	kube     *KubeSource
 }
 
 func (self *ExternalSource) getCadvisorHosts() (*CadvisorHosts, error) {
@@ -77,6 +77,6 @@ func newExternalSource(kubeSource *KubeSource) (Source, error) {
 	cadvisorSource := newCadvisorSource()
 	return &ExternalSource{
 		cadvisor: cadvisorSource,
-		kube: kubeSource,
+		kube:     kubeSource,
 	}, nil
 }
