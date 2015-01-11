@@ -42,12 +42,10 @@ func doWork() error {
 			for _, source := range sources {
 				data, err := source.GetInfo()
 				if err != nil {
-					println(err)
 					glog.Error(err)
 					continue
 				}
 				if err := sink.StoreData(data); err != nil {
-					println(err)
 					glog.Error(err)
 				}
 			}
