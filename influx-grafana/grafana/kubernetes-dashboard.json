@@ -79,7 +79,7 @@
               "condition_key": "",
               "condition_op": "=",
               "condition_value": "",
-              "interval": "2s",
+              "interval": "10s",
               "groupby_field_add": true,
               "groupby_field": "container_name",
               "alias": "$g"
