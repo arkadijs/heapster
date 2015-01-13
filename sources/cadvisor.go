@@ -41,7 +41,7 @@ func (self *cadvisorSource) getAllCadvisorData(hostname, ip, port, container str
 	allContainers, err := client.AllDockerContainers(
 		&cadvisor.ContainerInfoRequest{NumStats: int(duration / time.Second)})
 	if err != nil {
-		glog.Errorf("failed to get stats from cadvisor on host %s with ip %s - %s\n", hostname, ip, err)
+		glog.Errorf("Failed to get stats from cAdvisor on host `%s` with ip %s: %v\n", hostname, ip, err)
 		return
 	}
 
@@ -59,7 +59,7 @@ func (self *cadvisorSource) fetchData(cadvisorHosts *CadvisorHosts) (rawContaine
 	for hostname, ip := range cadvisorHosts.Hosts {
 		containers, _, err := self.getAllCadvisorData(hostname, ip, strconv.Itoa(cadvisorHosts.Port), "/")
 		if err != nil {
-			return nil, nil, fmt.Errorf("Failed to get cAdvisor data from host %q: %v", hostname, err)
+			return nil, nil, fmt.Errorf("Failed to get cAdvisor data from host `%s`: %v\n", hostname, err)
 		}
 		rawContainers = append(rawContainers, containers...)
 	}

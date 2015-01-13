@@ -144,7 +144,7 @@ func (self *KubeSource) GetInfo() (ContainerData, error) {
 	for _, pod := range pods {
 		addrs, err := net.LookupIP(pod.Hostname)
 		if err != nil {
-			glog.Errorf("Skipping host %s since looking up its IP failed - %s", pod.Hostname, err)
+			glog.Errorf("Skipping host `%s` since looking up its IP failed: %v", pod.Hostname, err)
 			continue
 		}
 		hostIP := addrs[0].String()
