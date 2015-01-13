@@ -11,6 +11,8 @@ import (
 	"github.com/golang/glog"
 )
 
+const heapsterVersion = "0.5-dev"
+
 func main() {
 	flag.Parse()
 	glog.Infof(strings.Join(os.Args, " "))
