@@ -13,11 +13,12 @@ import (
 )
 
 var (
-	argBufferDuration = flag.Duration("influxdb_buffer_duration", 1*time.Second, "Time duration for which stats should be buffered in influxdb sink before being written as a single transaction")
+	argBufferDuration = flag.Duration("influxdb_buffer_duration", 1*time.Second, "Time duration for which stats should be buffered in InfluxDB sink before being written as a single transaction")
 	argDbUsername     = flag.String("influxdb_username", "root", "InfluxDB username")
 	argDbPassword     = flag.String("influxdb_password", "root", "InfluxDB password")
 	argDbHost         = flag.String("influxdb_host", "localhost:8086", "InfluxDB host:port")
-	argDbName         = flag.String("influxdb_name", "k8s", "Influxdb database name")
+	argDbName         = flag.String("influxdb_name", "k8s", "InfluxDB database name")
+	argRecreateDrop   = flag.Bool("influxdb_drop_unknown_queries", true, "Drop unknown InfluxDB continuous queries at start")
 )
 
 type InfluxdbSink struct {
@@ -208,5 +209,53 @@ func NewInfluxdbSink() (Sink, error) {
 		sink:           flusherChannel,
 	}
 	go sink.flusher()
+	go recreateContinuousQueries(client)
 	return sink, nil
+}
+
+
+func recreateContinuousQueries(client *influxdb.Client) {
+	var queries = map[string]int{
+		"select container_name, derivative(cpu_cumulative_usage) as cpu_usage from stats group by time(10s), container_name, hostname into cpu_stats": 1,
+	}
+	for {
+		time.Sleep(10*time.Second)
+		// GetContinuousQueries -> 404
+		series, err := client.Query("list continuous queries")
+		if err != nil {
+			glog.Errorf("Cannot obtain list of exists InfluxDB continuous queries: %v", err)
+			continue
+		}
+		if len(series) > 0 {
+			existing := make(map[string]int)
+			for _, row := range series[0].GetPoints() {
+				query := row[2].(string)
+				existing[query] = int(row[1].(float64))
+			}
+			for query, id := range existing {
+				_, exist := queries[query]
+				if !exist {
+					if *argRecreateDrop {
+						_, err := client.Query(fmt.Sprintf("drop continuous query %d", id))
+						if err != nil {
+							glog.Errorf("Cannot drop InfluxDB continuous query `%s`: %v", query, err)
+							continue
+						}
+					}
+				} else {
+					delete(queries, query)
+				}
+			}
+		}
+		if len(queries) == 0 {
+			return
+		}
+		for query, _ := range queries {
+			_, err := client.Query(query)
+			if err != nil {
+				glog.Errorf("Cannot create InfluxDB continuous query `%s`: %v", query, err)
+				continue
+			}
+		}
+	}
 }
