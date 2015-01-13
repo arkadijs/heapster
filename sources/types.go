@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	ArgPollDuration = flag.Duration("poll_duration", 10*time.Second, "Polling duration")
+	ArgPollDuration = flag.Duration("poll_duration", 5*time.Second, "Polling duration")
 	argMaster       = flag.String("kubernetes_master", "", "Kubernetes master IP")
 	argKubeletPort  = flag.String("kubelet_port", "10250", "Kubelet port")
 )
