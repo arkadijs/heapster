@@ -10,6 +10,8 @@ var (
 	ArgPollDuration = flag.Duration("poll_duration", 5*time.Second, "Polling duration")
 	argMaster       = flag.String("kubernetes_master", "", "Kubernetes master IP")
 	argKubeletPort  = flag.String("kubelet_port", "10250", "Kubelet port")
+	argCadvisorPort = flag.Int("cadvisor_port", 4194, "cAdvisor port in current CoreOS cluster")
+	argEtcd         = flag.String("etcd", "http://127.0.0.1:4001", "Comma separated list of ETCD endpoints for Fleet connection")
 )
 
 type Data interface{}

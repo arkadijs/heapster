@@ -16,12 +16,6 @@ import (
 	cadvisor "github.com/google/cadvisor/info"
 )
 
-// Kubernetes released supported and tested against.
-var kubeVersions = []string{"v0.3"}
-
-// Cadvisor port in kubernetes.
-const cadvisorPort = 4194
-
 type KubeSource struct {
 	client       *kube_client.Client
 	lastQuery    time.Time
@@ -34,7 +28,7 @@ type nodeList CadvisorHosts
 // Returns a map of minion hostnames to their corresponding IPs.
 func (self *KubeSource) listMinions() (*nodeList, error) {
 	nodeList := &nodeList{
-		Port:  cadvisorPort,
+		Port:  *argCadvisorPort,
 		Hosts: make(map[string]string, 0),
 	}
 	minions, err := self.client.Nodes().List()
@@ -46,7 +40,7 @@ func (self *KubeSource) listMinions() (*nodeList, error) {
 		if err == nil {
 			nodeList.Hosts[minion.Name] = addrs[0].String()
 		} else {
-			glog.Errorf("Skipping host %s since looking up its IP failed - %s", minion.Name, err)
+			glog.Errorf("Skipping host `%s` since looking up its IP failed: %v", minion.Name, err)
 		}
 	}
 
