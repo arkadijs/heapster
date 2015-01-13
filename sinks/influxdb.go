@@ -161,7 +161,7 @@ func (self *InfluxdbSink) flusher() {
 	}
 }
 
-func (self *InfluxdbSink) StoreData(_data Data) error {
+func (self *InfluxdbSink) StoreData(_data sources.Data) error {
 	if data, ok := _data.(sources.ContainerData); ok {
 		self.sink <- self.handlePods(data.Pods)
 		self.sink <- self.handleContainers(data.Containers, statsTable)

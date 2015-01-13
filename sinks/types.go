@@ -3,14 +3,14 @@ package sinks
 import (
 	"flag"
 	"fmt"
+
+	"github.com/GoogleCloudPlatform/heapster/sources"
 )
 
 var argSink = flag.String("sink", "influxdb", "Backend storage, currently only `influxdb`.")
 
-type Data interface{}
-
 type Sink interface {
-	StoreData(data Data) error
+	StoreData(data sources.Data) error
 }
 
 const (

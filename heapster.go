@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/heapster/sinks"
-	srcs "github.com/GoogleCloudPlatform/heapster/sources"
+	"github.com/GoogleCloudPlatform/heapster/sources"
 	"github.com/golang/glog"
 )
 
@@ -26,7 +26,7 @@ func main() {
 }
 
 func doWork() error {
-	sources, err := srcs.NewSources()
+	srcs, err := sources.NewSources()
 	if err != nil {
 		return err
 	}
@@ -34,20 +34,26 @@ func doWork() error {
 	if err != nil {
 		return err
 	}
-	ticker := time.NewTicker(*srcs.ArgPollDuration)
+	ticker := time.NewTicker(*sources.ArgPollDuration)
 	defer ticker.Stop()
+	dataChan := make(chan sources.Data, 10)
 	for {
 		select {
 		case <-ticker.C:
-			for _, source := range sources {
-				data, err := source.GetInfo()
-				if err != nil {
-					glog.Error(err)
-					continue
-				}
-				if err := sink.StoreData(data); err != nil {
-					glog.Error(err)
-				}
+			for _, source := range srcs {
+				go func(source sources.Source) {
+					data, err := source.GetInfo()
+					if err != nil {
+						glog.Error(err)
+					} else {
+						dataChan <- data
+					}
+				}(source)
+			}
+
+		case data := <-dataChan:
+			if err := sink.StoreData(data); err != nil {
+				glog.Error(err)
 			}
 		}
 	}

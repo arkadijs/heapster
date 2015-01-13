@@ -12,6 +12,8 @@ var (
 	argKubeletPort  = flag.String("kubelet_port", "10250", "Kubelet port")
 )
 
+type Data interface{}
+
 type Container struct {
 	Name  string                     `json:"name,omitempty"`
 	Spec  cadvisor.ContainerSpec     `json:"spec,omitempty"`
@@ -50,11 +52,6 @@ type CadvisorHosts struct {
 }
 
 type Source interface {
-	// Fetches containers or pod information from all the nodes in the cluster.
-	// Returns:
-	// 1. podsOrContainers: A slice of Pod or a slice of RawContainer
-	// 2. nodes: A slice of RawContainer, one for each node in the cluster, that contains
-	// root cgroup information.
 	GetInfo() (ContainerData, error)
 }
 
