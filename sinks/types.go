@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-var argSink = flag.String("sink", "memory", "Backend storage. Options are [memory | influxdb | bigquery]")
+var argSink = flag.String("sink", "influxdb", "Backend storage, currently only `influxdb`.")
 
 type Data interface{}
 
@@ -37,12 +37,8 @@ const (
 
 func NewSink() (Sink, error) {
 	switch *argSink {
-	case "memory":
-		return NewMemorySink(), nil
 	case "influxdb":
 		return NewInfluxdbSink()
-	case "bigquery":
-		return NewBigQuerySink()
 	default:
 		return nil, fmt.Errorf("Invalid sink specified - %s", *argSink)
 	}
