@@ -46,10 +46,6 @@ func (self *ExternalSource) getCadvisorHosts() (*CadvisorHosts, error) {
 	return &cadvisorHosts, nil
 }
 
-func (self *ExternalSource) GetPods() ([]Pod, error) {
-	return []Pod{}, nil
-}
-
 func (self *ExternalSource) GetInfo() (ContainerData, error) {
 	hosts, err := self.getCadvisorHosts()
 	if err != nil {
