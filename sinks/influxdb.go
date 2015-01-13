@@ -13,19 +13,19 @@ import (
 )
 
 var (
-	argBufferDuration = flag.Duration("sink_influxdb_buffer_duration", 10*time.Second, "Time duration for which stats should be buffered in influxdb sink before being written as a single transaction")
-	argDbUsername     = flag.String("sink_influxdb_username", "root", "InfluxDB username")
-	argDbPassword     = flag.String("sink_influxdb_password", "root", "InfluxDB password")
-	argDbHost         = flag.String("sink_influxdb_host", "localhost:8086", "InfluxDB host:port")
-	argDbName         = flag.String("sink_influxdb_name", "k8s", "Influxdb database name")
+	argBufferDuration = flag.Duration("influxdb_buffer_duration", 1*time.Second, "Time duration for which stats should be buffered in influxdb sink before being written as a single transaction")
+	argDbUsername     = flag.String("influxdb_username", "root", "InfluxDB username")
+	argDbPassword     = flag.String("influxdb_password", "root", "InfluxDB password")
+	argDbHost         = flag.String("influxdb_host", "localhost:8086", "InfluxDB host:port")
+	argDbName         = flag.String("influxdb_name", "k8s", "Influxdb database name")
 )
 
 type InfluxdbSink struct {
 	client         *influxdb.Client
-	series         []*influxdb.Series
 	dbName         string
 	bufferDuration time.Duration
 	lastWrite      time.Time
+	sink           chan *[]*influxdb.Series
 }
 
 func (self *InfluxdbSink) containerStatsToValues(pod *sources.Pod, hostname, containerName string, spec cadvisor.ContainerSpec, stat *cadvisor.ContainerStats) (columns []string, values []interface{}) {
@@ -111,56 +111,65 @@ func (self *InfluxdbSink) newSeries(tableName string, columns []string, points [
 	return out
 }
 
-func (self *InfluxdbSink) handlePods(pods []sources.Pod) {
+func (self *InfluxdbSink) handlePods(pods []sources.Pod) *[]*influxdb.Series {
+	series := make([]*influxdb.Series, 0)
 	for _, pod := range pods {
 		for _, container := range pod.Containers {
 			for _, stat := range container.Stats {
 				col, val := self.containerStatsToValues(&pod, pod.Hostname, container.Name, container.Spec, stat)
-				self.series = append(self.series, self.newSeries(statsTable, col, val))
+				series = append(series, self.newSeries(statsTable, col, val))
+			}
+		}
+	}
+	return &series
+}
+
+func (self *InfluxdbSink) handleContainers(containers []sources.RawContainer, tableName string) *[]*influxdb.Series {
+	series := make([]*influxdb.Series, 0)
+	// TODO(vishh): Export spec into a separate table and update it whenever it changes.
+	for _, container := range containers {
+		for _, stat := range container.Stats {
+			col, val := self.containerStatsToValues(nil, container.Hostname, container.Name, container.Spec, stat)
+			series = append(series, self.newSeries(tableName, col, val))
+		}
+	}
+	return &series
+}
+
+func (self *InfluxdbSink) flusher() {
+	buffer := make([]*influxdb.Series, 0)
+	ticker := time.NewTicker(self.bufferDuration)
+	defer ticker.Stop()
+	for {
+		select {
+		case series := <-self.sink:
+			buffer = append(buffer, *series...)
+
+		case <-ticker.C:
+			if len(buffer) > 0 {
+				go func(series []*influxdb.Series) {
+					glog.V(2).Info("starting data flush to InfluxDB")
+					if err := self.client.WriteSeriesWithTimePrecision(series, influxdb.Second); err != nil {
+						glog.Errorf("Failed to write stats to InfluxDB: %v", err)
+					} else {
+						glog.V(2).Info("flushed data to InfluxDB")
+					}
+				}(buffer)
+				buffer = make([]*influxdb.Series, 0)
 			}
 		}
 	}
 }
 
-func (self *InfluxdbSink) handleContainers(containers []sources.RawContainer, tableName string) {
-	// TODO(vishh): Export spec into a separate table and update it whenever it changes.
-	for _, container := range containers {
-		for _, stat := range container.Stats {
-			col, val := self.containerStatsToValues(nil, container.Hostname, container.Name, container.Spec, stat)
-			self.series = append(self.series, self.newSeries(tableName, col, val))
-		}
-	}
-}
-
-func (self *InfluxdbSink) readyToFlush() bool {
-	return time.Since(self.lastWrite) >= self.bufferDuration
-}
-
-func (self *InfluxdbSink) StoreData(ip Data) error {
-	var seriesToFlush []*influxdb.Series
-	if data, ok := ip.(sources.ContainerData); ok {
-		self.handlePods(data.Pods)
-		self.handleContainers(data.Containers, statsTable)
-		self.handleContainers(data.Machine, machineTable)
+func (self *InfluxdbSink) StoreData(_data Data) error {
+	if data, ok := _data.(sources.ContainerData); ok {
+		self.sink <- self.handlePods(data.Pods)
+		self.sink <- self.handleContainers(data.Containers, statsTable)
+		self.sink <- self.handleContainers(data.Machine, machineTable)
+		return nil
 	} else {
 		return fmt.Errorf("Requesting unrecognized type to be stored in InfluxDB")
 	}
-	if self.readyToFlush() {
-		seriesToFlush = self.series
-		self.series = make([]*influxdb.Series, 0)
-		self.lastWrite = time.Now()
-	}
-
-	if len(seriesToFlush) > 0 {
-		glog.V(2).Info("flushed data to influxdb sink")
-		// TODO(vishh): Do writes in a separate thread.
-		err := self.client.WriteSeriesWithTimePrecision(seriesToFlush, influxdb.Second)
-		if err != nil {
-			glog.Errorf("failed to write stats to influxDb - %s", err)
-		}
-	}
-
-	return nil
 }
 
 func NewInfluxdbSink() (Sink, error) {
@@ -176,15 +185,28 @@ func NewInfluxdbSink() (Sink, error) {
 		return nil, err
 	}
 	client.DisableCompression()
-	if err := client.CreateDatabase(*argDbName); err != nil {
-		glog.Infof("Database creation failed - %s", err)
+	createDatabase := true
+	if databases, err := client.GetDatabaseList(); err == nil {
+		for _, database := range databases {
+			if database["name"] == *argDbName {
+				createDatabase = false
+				break
+			}
+		}
 	}
-	// Create the database if it does not already exist. Ignore errors.
-	return &InfluxdbSink{
+	if createDatabase {
+		if err := client.CreateDatabase(*argDbName); err != nil {
+			glog.Infof("Database creation failed: %v", err)
+			return nil, err
+		}
+	}
+	flusherChannel := make(chan *[]*influxdb.Series, 10)
+	sink := &InfluxdbSink{
 		client:         client,
-		series:         make([]*influxdb.Series, 0),
 		dbName:         *argDbName,
 		bufferDuration: *argBufferDuration,
-		lastWrite:      time.Now(),
-	}, nil
+		sink:           flusherChannel,
+	}
+	go sink.flusher()
+	return sink, nil
 }
