@@ -221,7 +221,8 @@ func seriesName(query string) string {
 func recreateContinuousQueries(client *influxdb.Client) {
 	var _queries = []string{
 		// the queries must be exactly the same as 'list continuous queries' formats them
-		"select container_name,derivative(cpu_cumulative_usage) as cpu_usage from \"stats\" group by time(10s),container_name,hostname into cpu_stats",
+		"select container_name,derivative(cpu_cumulative_usage) as cpu_usage from \"stats\" where container_name !~ /^(deis-|registrator|skydns|cadvisor|elasticsearch|grafana|influxdb|hawtio)/ group by time(10s),container_name,hostname into cpu_stats_apps",
+		"select container_name,derivative(cpu_cumulative_usage) as cpu_usage from \"stats\" where container_name =~ /^(deis-|registrator|skydns|cadvisor|elasticsearch|grafana|influxdb|hawtio)/ group by time(10s),container_name,hostname into cpu_stats_infra",
 	}
 	queries := make(map[string]string)
 	for _, q := range _queries {
