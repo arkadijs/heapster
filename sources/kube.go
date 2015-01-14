@@ -104,7 +104,7 @@ func (self *KubeSource) getStatsFromKubelet(hostIP string, podName string, podID
 	req.Header.Set("Content-Type", "application/json")
 	err = PostRequestAndGetValue(http.DefaultClient, req, &containerInfo)
 	if err != nil {
-		glog.Errorf("failed to get stats from kubelet url: %s - %s\n", url, err)
+		glog.Errorf("Failed to get stats from Kubelet `%s`: %v\n", url, err)
 		return cadvisor.ContainerSpec{}, []*cadvisor.ContainerStats{}, nil
 	}
 
