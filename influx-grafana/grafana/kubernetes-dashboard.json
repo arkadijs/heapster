@@ -168,7 +168,7 @@
             }
           ],
           "aliasColors": {},
-          "title": "Cluster memory usage - stacked",
+          "title": "Cluster Memory usage - stacked",
           "datasource": null,
           "renderer": "png",
           "annotate": {
@@ -683,7 +683,7 @@
             }
           ],
           "aliasColors": {},
-          "title": "Pod 'influx-grafana' memory usage",
+          "title": "Pod 'influx-grafana' Memory usage",
           "datasource": null,
           "renderer": "png",
           "annotate": {
