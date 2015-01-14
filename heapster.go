@@ -44,7 +44,7 @@ func doWork() error {
 				go func(source sources.Source) {
 					data, err := source.GetInfo()
 					if err != nil {
-						glog.Error(err)
+						glog.Errorf("Failed to retrieve stats: %v", err)
 					} else {
 						dataChan <- data
 					}
