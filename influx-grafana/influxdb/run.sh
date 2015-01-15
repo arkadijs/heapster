@@ -5,6 +5,7 @@ set -m
 CONFIG_FILE="/config/config.toml"
 API_URL="http://localhost:8086"
 SHARD_CONFIG="/config/shardSpace.json"
+
 if [ "${PRE_CREATE_DB}" == "**None**" ]; then
     unset PRE_CREATE_DB
 fi
@@ -22,7 +23,7 @@ if [ -n "${PRE_CREATE_DB}" ]; then
         RET=1
         while [[ RET -ne 0 ]]; do
             echo "=> Waiting for confirmation of InfluxDB service startup ..."
-            sleep 3 
+            sleep 3
             curl -k ${API_URL}/ping 2> /dev/null
             RET=$?
         done
@@ -43,6 +44,7 @@ else
     echo "=> No database need to be pre-created"
 fi
 
-echo "=> Starting InfluxDB ..."
+echo "=>influxDB for heapster version: 0.2!"
+echo "=> Starting InfluxDB..."
 
 exec /usr/bin/influxdb -config=${CONFIG_FILE}
