@@ -18,7 +18,7 @@ var (
 	argDbPassword     = flag.String("influxdb_password", "root", "InfluxDB password")
 	argDbHost         = flag.String("influxdb_host", "localhost:8086", "InfluxDB host:port")
 	argDbName         = flag.String("influxdb_name", "k8s", "InfluxDB database name")
-	argRecreateDrop   = flag.Bool("influxdb_drop_unknown_queries", false, "Drop unknown InfluxDB continuous queries at start")
+	argDropUnknown   = flag.Bool("influxdb_drop_unknown_queries", false, "Drop unknown InfluxDB continuous queries at start")
 )
 
 type InfluxdbSink struct {
@@ -218,15 +218,26 @@ func seriesName(query string) string {
 	return query[i+1:]
 }
 
+func dropContinuousQuery(client *influxdb.Client, id int) error {
+	_, err := client.Query(fmt.Sprintf("drop continuous query %d", id))
+	if err != nil {
+		glog.Errorf("Cannot drop InfluxDB continuous query `%d`: %v", id, err)
+	}
+	return err
+}
+
 func recreateContinuousQueries(client *influxdb.Client) {
+	infra := "/^(deis-|registrator|skydns|cadvisor|elasticsearch|grafana|influxdb|hawtio)/"
 	var _queries = []string{
 		// the queries must be exactly the same as 'list continuous queries' formats them
-		"select container_name,derivative(cpu_cumulative_usage) as cpu_usage from \"stats\" where container_name !~ /^(deis-|registrator|skydns|cadvisor|elasticsearch|grafana|influxdb|hawtio)/ group by time(10s),container_name,hostname into cpu_stats_apps",
-		"select container_name,derivative(cpu_cumulative_usage) as cpu_usage from \"stats\" where container_name =~ /^(deis-|registrator|skydns|cadvisor|elasticsearch|grafana|influxdb|hawtio)/ group by time(10s),container_name,hostname into cpu_stats_infra",
+		"select container_name,derivative(cpu_cumulative_usage) as cpu_usage from \"stats\" where container_name !~ %s group by time(10s),container_name,hostname into cpu_stats_apps",
+		"select container_name,derivative(cpu_cumulative_usage) as cpu_usage from \"stats\" where container_name =~ %s group by time(10s),container_name,hostname into cpu_stats_infra",
+		"select container_name,derivative(rx_bytes + tx_bytes) as net_io from \"stats\" where container_name !~ %s group by time(10s),container_name,hostname into net_stats_apps",
+		"select container_name,derivative(rx_bytes + tx_bytes) as net_io from \"stats\" where container_name =~ %s group by time(10s),container_name,hostname into net_stats_infra",
 	}
 	queries := make(map[string]string)
 	for _, q := range _queries {
-		queries[seriesName(q)] = q
+		queries[seriesName(q)] = fmt.Sprintf(q, infra)
 	}
 	for {
 		time.Sleep(10*time.Second)
@@ -246,16 +257,14 @@ func recreateContinuousQueries(client *influxdb.Client) {
 				table := seriesName(existingQuery)
 				query, exist := queries[table]
 				if !exist {
-					if *argRecreateDrop {
-						_, err := client.Query(fmt.Sprintf("drop continuous query %d", id))
-						if err != nil {
-							glog.Errorf("Cannot drop InfluxDB continuous query `%s`: %v", query, err)
-							continue
-						}
+					if *argDropUnknown {
+						dropContinuousQuery(client, id)
 					}
 				} else {
 					if existingQuery == query {
 						delete(queries, table)
+					} else {
+						dropContinuousQuery(client, id)
 					}
 				}
 			}

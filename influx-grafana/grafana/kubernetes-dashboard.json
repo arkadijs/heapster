@@ -344,6 +344,86 @@
           },
           "id": 2,
           "seriesOverrides": []
+        },
+        {
+          "span": 6,
+          "editable": true,
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "scale": 1,
+          "y_formats": [
+            "bytes",
+            "bytes"
+          ],
+          "grid": {
+            "max": null,
+            "min": 0,
+            "leftMax": null,
+            "rightMax": null,
+            "leftMin": 0,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold2": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "resolution": 100,
+          "lines": true,
+          "fill": 1,
+          "linewidth": 2,
+          "points": false,
+          "pointradius": 5,
+          "bars": false,
+          "stack": true,
+          "spyable": true,
+          "options": false,
+          "legend": {
+            "show": true,
+            "values": true,
+            "min": false,
+            "max": true,
+            "current": false,
+            "total": false,
+            "avg": true
+          },
+          "interactive": true,
+          "legend_counts": true,
+          "timezone": "browser",
+          "percentage": false,
+          "zerofill": true,
+          "nullPointMode": "connected",
+          "steppedLine": false,
+          "tooltip": {
+            "value_type": "cumulative",
+            "query_as_alias": true
+          },
+          "targets": [
+            {
+              "target": "randomWalk('random walk')",
+              "function": "sum",
+              "column": "net_io",
+              "series": "net_stats_apps",
+              "query": "select container_name, sum(net_io) from \"net_stats_apps\" where $timeFilter group by time($interval), container_name order asc",
+              "condition_filter": false,
+              "condition_key": "",
+              "condition_op": "=",
+              "condition_value": "",
+              "interval": "10s",
+              "groupby_field_add": true,
+              "groupby_field": "container_name",
+              "alias": "$g"
+            }
+          ],
+          "aliasColors": {},
+          "title": "Applications Network usage",
+          "datasource": null,
+          "renderer": "png",
+          "annotate": {
+            "enable": false
+          },
+          "id": 1,
+          "seriesOverrides": []
         }
       ],
       "notice": false
@@ -511,6 +591,86 @@
             "enable": false
           },
           "id": 2,
+          "seriesOverrides": []
+        },
+        {
+          "span": 6,
+          "editable": true,
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "scale": 1,
+          "y_formats": [
+            "bytes",
+            "bytes"
+          ],
+          "grid": {
+            "max": null,
+            "min": 0,
+            "leftMax": null,
+            "rightMax": null,
+            "leftMin": 0,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold2": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "resolution": 100,
+          "lines": true,
+          "fill": 1,
+          "linewidth": 2,
+          "points": false,
+          "pointradius": 5,
+          "bars": false,
+          "stack": true,
+          "spyable": true,
+          "options": false,
+          "legend": {
+            "show": true,
+            "values": true,
+            "min": false,
+            "max": true,
+            "current": false,
+            "total": false,
+            "avg": true
+          },
+          "interactive": true,
+          "legend_counts": true,
+          "timezone": "browser",
+          "percentage": false,
+          "zerofill": true,
+          "nullPointMode": "connected",
+          "steppedLine": false,
+          "tooltip": {
+            "value_type": "cumulative",
+            "query_as_alias": true
+          },
+          "targets": [
+            {
+              "target": "randomWalk('random walk')",
+              "function": "sum",
+              "column": "net_io",
+              "series": "net_stats_infra",
+              "query": "select container_name, sum(net_io) from \"net_stats_infra\" where $timeFilter group by time($interval), container_name order asc",
+              "condition_filter": false,
+              "condition_key": "",
+              "condition_op": "=",
+              "condition_value": "",
+              "interval": "10s",
+              "groupby_field_add": true,
+              "groupby_field": "container_name",
+              "alias": "$g"
+            }
+          ],
+          "aliasColors": {},
+          "title": "Infrastructure Network usage",
+          "datasource": null,
+          "renderer": "png",
+          "annotate": {
+            "enable": false
+          },
+          "id": 1,
           "seriesOverrides": []
         }
       ],
