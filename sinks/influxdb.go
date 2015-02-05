@@ -227,7 +227,7 @@ func dropContinuousQuery(client *influxdb.Client, id int) error {
 }
 
 func recreateContinuousQueries(client *influxdb.Client) {
-	infra := "/^(deis-|registrator|skydns|cadvisor|monitoring-)/"
+	infra := "/^(deis-|registrator|skydns|cadvisor|monitoring-|docker-registry)/"
 	var _queries = []string{
 		// the queries must be exactly the same as 'list continuous queries' formats them
 		"select container_name,derivative(cpu_cumulative_usage) as cpu_usage from \"stats\" where container_name !~ %s group by time(10s),container_name,hostname into cpu_stats_apps",
