@@ -66,7 +66,7 @@ func (self *InfluxdbSink) getDefaultSeriesData(pod *sources.Pod, hostname, conta
 	return
 }
 
-func (self *InfluxdbSink) containerFsStatsToSeries(pod *sources.Pod, hostname, containerName string, spec cadvisor.ContainerSpec, stat *cadvisor.ContainerStats) (series []*influxdb.Series) {
+func (self *InfluxdbSink) containerFsStatsToSeries(tableName, hostname, containerName string, spec cadvisor.ContainerSpec, stat *cadvisor.ContainerStats, pod *sources.Pod) (series []*influxdb.Series) {
 	if len(stat.Filesystem) == 0 {
 		return
 	}
@@ -88,7 +88,7 @@ func (self *InfluxdbSink) containerFsStatsToSeries(pod *sources.Pod, hostname, c
 		columns = append(columns, colFsIoTimeWeighted)
 		values = append(values, fsStat.WeightedIoTime)
 
-		series = append(series, self.newSeries(statsTable, columns, values))
+		series = append(series, self.newSeries(tableName, columns, values))
 	}
 	return series
 
@@ -171,7 +171,7 @@ func (self *InfluxdbSink) handlePods(pods []sources.Pod) *[]*influxdb.Series {
 			for _, stat := range container.Stats {
 				col, val := self.containerStatsToValues(&pod, pod.Hostname, container.Name, container.Spec, stat)
 				series = append(series, self.newSeries(statsTable, col, val))
-				series = append(series, self.containerFsStatsToSeries(&pod, pod.Hostname, container.Name, container.Spec, stat)...)
+				series = append(series, self.containerFsStatsToSeries(statsTable, pod.Hostname, container.Name, container.Spec, stat, &pod)...)
 			}
 		}
 	}
@@ -185,6 +185,7 @@ func (self *InfluxdbSink) handleContainers(containers []sources.RawContainer, ta
 		for _, stat := range container.Stats {
 			col, val := self.containerStatsToValues(nil, container.Hostname, container.Name, container.Spec, stat)
 			series = append(series, self.newSeries(tableName, col, val))
+			series = append(series, self.containerFsStatsToSeries(tableName, container.Hostname, container.Name, container.Spec, stat, nil)...)
 		}
 	}
 	return &series
