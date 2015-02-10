@@ -94,6 +94,21 @@ func (self *InfluxdbSink) containerFsStatsToSeries(tableName, hostname, containe
 
 }
 
+func agg(stats *[]cadvisor.PerDiskStats, what string) (ret uint64) {
+	for _, disk := range *stats {
+		ret += disk.Stats[what]
+	}
+	return
+}
+
+func sum(stats *[]cadvisor.PerDiskStats) uint64 {
+	return agg(stats, "Total")
+}
+
+func count(stats *[]cadvisor.PerDiskStats) uint64 {
+	return agg(stats, "Count")
+}
+
 func (self *InfluxdbSink) containerStatsToValues(pod *sources.Pod, hostname, containerName string, spec cadvisor.ContainerSpec, stat *cadvisor.ContainerStats) (columns []string, values []interface{}) {
 	columns, values = self.getDefaultSeriesData(pod, hostname, containerName, stat)
 	if spec.HasCpu {
@@ -134,21 +149,21 @@ func (self *InfluxdbSink) containerStatsToValues(pod *sources.Pod, hostname, con
 	// DiskIo stats.
 	// TODO(vishh): Use spec.HasDiskIo once that is exported by cadvisor.
 	columns = append(columns, colDiskIoServiceBytes)
-	values = append(values, stat.DiskIo.IoServiceBytes)
+	values = append(values, sum(&stat.DiskIo.IoServiceBytes))
 	columns = append(columns, colDiskIoServiced)
-	values = append(values, stat.DiskIo.IoServiced)
+	values = append(values, sum(&stat.DiskIo.IoServiced))
 	columns = append(columns, colDiskIoQueued)
-	values = append(values, stat.DiskIo.IoQueued)
+	values = append(values, sum(&stat.DiskIo.IoQueued))
 	columns = append(columns, colDiskIoSectors)
-	values = append(values, stat.DiskIo.Sectors)
+	values = append(values, count(&stat.DiskIo.Sectors))
 	columns = append(columns, colDiskIoServiceTime)
-	values = append(values, stat.DiskIo.IoServiceTime)
+	values = append(values, sum(&stat.DiskIo.IoServiceTime))
 	columns = append(columns, colDiskIoWaitTime)
-	values = append(values, stat.DiskIo.IoWaitTime)
+	values = append(values, sum(&stat.DiskIo.IoWaitTime))
 	columns = append(columns, colDiskIoMerged)
-	values = append(values, stat.DiskIo.IoMerged)
+	values = append(values, sum(&stat.DiskIo.IoMerged))
 	columns = append(columns, colDiskIoTime)
-	values = append(values, stat.DiskIo.IoTime)
+	values = append(values, count(&stat.DiskIo.IoTime))
 	return
 }
 
