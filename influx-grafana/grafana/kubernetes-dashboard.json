@@ -16,7 +16,7 @@
       "collapsable": true,
       "panels": [
         {
-          "span": 6,
+          "span": 4,
           "editable": true,
           "type": "graph",
           "x-axis": true,
@@ -75,7 +75,7 @@
               "function": "derivative",
               "column": "cpu_cumulative_usage",
               "series": "machine",
-              "query": "select hostname, derivative(cpu_cumulative_usage) from \"machine\" where $timeFilter group by time($interval), hostname fill(null) order asc",
+              "query": "select hostname, derivative(cpu_cumulative_usage) from \"machine\" where $timeFilter and cpu_cumulative_usage > 0 group by time($interval), hostname fill(null) order asc",
               "condition_filter": true,
               "interval": "5s",
               "groupby_field_add": true,
@@ -92,12 +92,12 @@
           "annotate": {
             "enable": false
           },
-          "id": 7,
+          "id": 1,
           "seriesOverrides": [],
           "interval": "5s"
         },
         {
-          "span": 6,
+          "span": 4,
           "editable": true,
           "type": "graph",
           "x-axis": true,
@@ -174,7 +174,89 @@
           "annotate": {
             "enable": false
           },
-          "id": 8,
+          "id": 2,
+          "seriesOverrides": []
+        },
+        {
+          "span": 4,
+          "editable": true,
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "scale": 1,
+          "y_formats": [
+            "percent",
+            "percent"
+          ],
+          "grid": {
+            "max": null,
+            "min": 0,
+            "leftMax": null,
+            "rightMax": null,
+            "leftMin": 0,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold2": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "resolution": 100,
+          "lines": true,
+          "fill": 1,
+          "linewidth": 2,
+          "points": false,
+          "pointradius": 5,
+          "bars": false,
+          "stack": true,
+          "spyable": true,
+          "options": false,
+          "legend": {
+            "show": true,
+            "values": true,
+            "min": false,
+            "max": true,
+            "current": true,
+            "total": false,
+            "avg": false,
+            "alignAsTable": true,
+            "rightSide": false
+          },
+          "interactive": true,
+          "legend_counts": true,
+          "timezone": "browser",
+          "percentage": false,
+          "zerofill": true,
+          "nullPointMode": "connected",
+          "steppedLine": false,
+          "tooltip": {
+            "value_type": "individual",
+            "query_as_alias": true
+          },
+          "targets": [
+            {
+              "target": "randomWalk('random walk')",
+              "function": "min",
+              "column": "fs_free_percent",
+              "series": "filesystems",
+              "query": "select hostname, min(fs_free_percent) from \"filesystems\" where $timeFilter and fs_device = '/dev/xvdf' group by time($interval), hostname fill(null) order asc",
+              "condition_filter": true,
+              "condition": "fs_device = '/dev/xvdf'",
+              "interval": "5s",
+              "groupby_field_add": true,
+              "groupby_field": "hostname",
+              "alias": "$g",
+              "condition": "",
+              "fill": "null"
+            }
+          ],
+          "aliasColors": {},
+          "title": "Cluster Disk free - stacked",
+          "datasource": null,
+          "renderer": "png",
+          "annotate": {
+            "enable": false
+          },
+          "id": 3,
           "seriesOverrides": []
         }
       ],
@@ -264,7 +346,7 @@
           "annotate": {
             "enable": false
           },
-          "id": 1,
+          "id": 4,
           "seriesOverrides": []
         },
         {
@@ -323,13 +405,13 @@
           "targets": [
             {
               "target": "randomWalk('random walk')",
-              "function": "mean",
+              "function": "max",
               "column": "memory_usage",
-              "series": "stats",
-              "query": "select container_name, mean(memory_usage) from \"stats\" where $timeFilter and container_name !~ /^(deis-|registrator|skydns|cadvisor|monitoring-|docker-registry|development-)/ group by time($interval), container_name order asc",
-              "condition_filter": true,
-              "condition": "container_name !~ /^(deis-|registrator|skydns|cadvisor|monitoring-|docker-registry|development-)/",
-              "interval": "5s",
+              "series": "memory_stats_apps",
+              "query": "select container_name, max(memory_usage) from \"memory_stats_apps\" where $timeFilter group by time($interval), container_name order asc",
+              "condition_filter": false,
+              "condition": "",
+              "interval": "10s",
               "groupby_field_add": true,
               "groupby_field": "container_name",
               "alias": "$g"
@@ -342,7 +424,7 @@
           "annotate": {
             "enable": false
           },
-          "id": 2,
+          "id": 5,
           "seriesOverrides": []
         },
         {
@@ -416,13 +498,93 @@
             }
           ],
           "aliasColors": {},
-          "title": "Applications Network usage",
+          "title": "Applications Network transfers",
           "datasource": null,
           "renderer": "png",
           "annotate": {
             "enable": false
           },
-          "id": 1,
+          "id": 6,
+          "seriesOverrides": []
+        },
+        {
+          "span": 6,
+          "editable": true,
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "scale": 1,
+          "y_formats": [
+            "bytes",
+            "bytes"
+          ],
+          "grid": {
+            "max": null,
+            "min": 0,
+            "leftMax": null,
+            "rightMax": null,
+            "leftMin": 0,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold2": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "resolution": 100,
+          "lines": true,
+          "fill": 1,
+          "linewidth": 2,
+          "points": false,
+          "pointradius": 5,
+          "bars": false,
+          "stack": true,
+          "spyable": true,
+          "options": false,
+          "legend": {
+            "show": true,
+            "values": true,
+            "min": false,
+            "max": true,
+            "current": false,
+            "total": false,
+            "avg": true
+          },
+          "interactive": true,
+          "legend_counts": true,
+          "timezone": "browser",
+          "percentage": false,
+          "zerofill": true,
+          "nullPointMode": "connected",
+          "steppedLine": false,
+          "tooltip": {
+            "value_type": "cumulative",
+            "query_as_alias": true
+          },
+          "targets": [
+            {
+              "target": "randomWalk('random walk')",
+              "function": "sum",
+              "column": "disk_io",
+              "series": "disk_stats_apps",
+              "query": "select container_name, sum(disk_io) from \"disk_stats_apps\" where $timeFilter group by time($interval), container_name order asc",
+              "condition_filter": false,
+              "condition_key": "",
+              "condition_op": "=",
+              "condition_value": "",
+              "interval": "10s",
+              "groupby_field_add": true,
+              "groupby_field": "container_name",
+              "alias": "$g"
+            }
+          ],
+          "aliasColors": {},
+          "title": "Applications Disk transfers",
+          "datasource": null,
+          "renderer": "png",
+          "annotate": {
+            "enable": false
+          },
+          "id": 6,
           "seriesOverrides": []
         }
       ],
@@ -512,7 +674,7 @@
           "annotate": {
             "enable": false
           },
-          "id": 1,
+          "id": 8,
           "seriesOverrides": []
         },
         {
@@ -571,13 +733,13 @@
           "targets": [
             {
               "target": "randomWalk('random walk')",
-              "function": "mean",
+              "function": "max",
               "column": "memory_usage",
-              "series": "stats",
-              "query": "select container_name, mean(memory_usage) from \"stats\" where $timeFilter and container_name =~ /^(deis-|registrator|skydns|cadvisor|monitoring-|docker-registry|development-)/ group by time($interval), container_name order asc",
-              "condition_filter": true,
-              "condition": "container_name =~ /^(deis-|registrator|skydns|cadvisor|monitoring-|docker-registry|development-)/",
-              "interval": "5s",
+              "series": "memory_stats_infra",
+              "query": "select container_name, max(memory_usage) from \"memory_stats_infra\" where $timeFilter group by time($interval), container_name order asc",
+              "condition_filter": false,
+              "condition": "",
+              "interval": "10s",
               "groupby_field_add": true,
               "groupby_field": "container_name",
               "alias": "$g"
@@ -590,7 +752,7 @@
           "annotate": {
             "enable": false
           },
-          "id": 2,
+          "id": 9,
           "seriesOverrides": []
         },
         {
@@ -664,13 +826,93 @@
             }
           ],
           "aliasColors": {},
-          "title": "Infrastructure Network usage",
+          "title": "Infrastructure Network transfers",
           "datasource": null,
           "renderer": "png",
           "annotate": {
             "enable": false
           },
-          "id": 1,
+          "id": 10,
+          "seriesOverrides": []
+        },
+        {
+          "span": 6,
+          "editable": true,
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "scale": 1,
+          "y_formats": [
+            "bytes",
+            "bytes"
+          ],
+          "grid": {
+            "max": null,
+            "min": 0,
+            "leftMax": null,
+            "rightMax": null,
+            "leftMin": 0,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold2": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "resolution": 100,
+          "lines": true,
+          "fill": 1,
+          "linewidth": 2,
+          "points": false,
+          "pointradius": 5,
+          "bars": false,
+          "stack": true,
+          "spyable": true,
+          "options": false,
+          "legend": {
+            "show": true,
+            "values": true,
+            "min": false,
+            "max": true,
+            "current": false,
+            "total": false,
+            "avg": true
+          },
+          "interactive": true,
+          "legend_counts": true,
+          "timezone": "browser",
+          "percentage": false,
+          "zerofill": true,
+          "nullPointMode": "connected",
+          "steppedLine": false,
+          "tooltip": {
+            "value_type": "cumulative",
+            "query_as_alias": true
+          },
+          "targets": [
+            {
+              "target": "randomWalk('random walk')",
+              "function": "sum",
+              "column": "disk_io",
+              "series": "disk_stats_infra",
+              "query": "select container_name, sum(disk_io) from \"disk_stats_infra\" where $timeFilter group by time($interval), container_name order asc",
+              "condition_filter": false,
+              "condition_key": "",
+              "condition_op": "=",
+              "condition_value": "",
+              "interval": "10s",
+              "groupby_field_add": true,
+              "groupby_field": "container_name",
+              "alias": "$g"
+            }
+          ],
+          "aliasColors": {},
+          "title": "Infrastructure Disk transfers",
+          "datasource": null,
+          "renderer": "png",
+          "annotate": {
+            "enable": false
+          },
+          "id": 11,
           "seriesOverrides": []
         }
       ],
@@ -758,7 +1000,7 @@
           "annotate": {
             "enable": false
           },
-          "id": 5,
+          "id": 12,
           "seriesOverrides": []
         },
         {
@@ -849,203 +1091,8 @@
           "annotate": {
             "enable": false
           },
-          "id": 6,
+          "id": 13,
           "seriesOverrides": [],
-          "links": []
-        },
-        {
-          "span": 6,
-          "editable": true,
-          "type": "graph",
-          "x-axis": true,
-          "y-axis": true,
-          "scale": 1,
-          "y_formats": [
-            "bytes",
-            "bytes"
-          ],
-          "grid": {
-            "max": null,
-            "min": null,
-            "leftMax": null,
-            "rightMax": null,
-            "leftMin": null,
-            "rightMin": null,
-            "threshold1": 0,
-            "threshold2": null,
-            "threshold1Color": "rgba(216, 200, 27, 0.27)",
-            "threshold2Color": "rgba(234, 112, 112, 0.22)",
-            "thresholdLine": false
-          },
-          "resolution": 100,
-          "lines": true,
-          "fill": 1,
-          "linewidth": 1,
-          "points": false,
-          "pointradius": 5,
-          "bars": false,
-          "stack": true,
-          "spyable": true,
-          "options": false,
-          "legend": {
-            "show": true,
-            "values": true,
-            "min": false,
-            "max": true,
-            "current": false,
-            "total": false,
-            "avg": false,
-            "alignAsTable": false,
-            "hideEmpty": true
-          },
-          "interactive": true,
-          "legend_counts": true,
-          "timezone": "browser",
-          "percentage": false,
-          "zerofill": true,
-          "nullPointMode": "connected",
-          "steppedLine": false,
-          "tooltip": {
-            "value_type": "cumulative",
-            "query_as_alias": true,
-            "shared": false
-          },
-          "targets": [
-            {
-              "target": "randomWalk('random walk')",
-              "function": "max",
-              "column": "fs_capacity",
-              "series": "machine",
-              "query": "select hostname, max(fs_capacity) from \"machine\" where $timeFilter group by time($interval), hostname fill(null) order asc",
-              "condition_filter": true,
-              "interval": "5s",
-              "groupby_field_add": true,
-              "groupby_field": "hostname",
-              "alias": "",
-              "condition": "",
-              "fill": "null",
-              "rawQuery": false
-            }
-          ],
-          "aliasColors": {},
-          "title": "Cluster Filesystem Capacity - Stacked",
-          "datasource": null,
-          "renderer": "png",
-          "annotate": {
-            "enable": false
-          },
-          "id": 9,
-          "seriesOverrides": [
-            {
-              "alias": "capacity"
-            }
-          ],
-          "interval": "5s",
-          "links": []
-        },
-        {
-          "span": 6,
-          "editable": true,
-          "type": "graph",
-          "x-axis": true,
-          "y-axis": true,
-          "scale": 1,
-          "y_formats": [
-            "bytes",
-            "bytes"
-          ],
-          "grid": {
-            "max": null,
-            "min": null,
-            "leftMax": null,
-            "rightMax": null,
-            "leftMin": null,
-            "rightMin": null,
-            "threshold1": 0,
-            "threshold2": null,
-            "threshold1Color": "rgba(216, 200, 27, 0.27)",
-            "threshold2Color": "rgba(234, 112, 112, 0.22)",
-            "thresholdLine": false
-          },
-          "resolution": 100,
-          "lines": true,
-          "fill": 1,
-          "linewidth": 1,
-          "points": false,
-          "pointradius": 5,
-          "bars": false,
-          "stack": true,
-          "spyable": true,
-          "options": false,
-          "legend": {
-            "show": true,
-            "values": true,
-            "min": false,
-            "max": true,
-            "current": false,
-            "total": false,
-            "avg": false,
-            "alignAsTable": false,
-            "hideEmpty": true
-          },
-          "interactive": true,
-          "legend_counts": true,
-          "timezone": "browser",
-          "percentage": false,
-          "zerofill": true,
-          "nullPointMode": "connected",
-          "steppedLine": false,
-          "tooltip": {
-            "value_type": "cumulative",
-            "query_as_alias": true,
-            "shared": false
-          },
-          "targets": [
-            {
-              "target": "randomWalk('random walk')",
-              "function": "max",
-              "column": "fs_capacity",
-              "series": "machine",
-              "query": "select hostname, max(fs_capacity) from \"machine\" where $timeFilter group by time($interval), hostname fill(null) order asc",
-              "condition_filter": true,
-              "interval": "5s",
-              "groupby_field_add": true,
-              "groupby_field": "hostname",
-              "alias": "",
-              "condition": "",
-              "fill": "null",
-              "rawQuery": false
-            },
-            {
-              "target": "randomWalk('random walk')",
-              "function": "max",
-              "column": "fs_usage",
-              "series": "machine",
-              "query": "select hostname, max(fs_usage) from \"machine\" where $timeFilter group by time($interval), hostname fill(null) order asc",
-              "condition_filter": true,
-              "interval": "5s",
-              "groupby_field_add": true,
-              "groupby_field": "hostname",
-              "alias": "",
-              "condition": "",
-              "fill": "null",
-              "rawQuery": false
-            }
-          ],
-          "aliasColors": {},
-          "title": "Cluster Filesystem Usage - Stacked",
-          "datasource": null,
-          "renderer": "png",
-          "annotate": {
-            "enable": false
-          },
-          "id": 10,
-          "seriesOverrides": [
-            {
-              "alias": "capacity"
-            }
-          ],
-          "interval": "5s",
           "links": []
         }
       ],

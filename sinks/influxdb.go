@@ -18,7 +18,7 @@ var (
 	argDbPassword     = flag.String("influxdb_password", "root", "InfluxDB password")
 	argDbHost         = flag.String("influxdb_host", "localhost:8086", "InfluxDB host:port")
 	argDbName         = flag.String("influxdb_name", "k8s", "InfluxDB database name")
-	argDropUnknown   = flag.Bool("influxdb_drop_unknown_queries", false, "Drop unknown InfluxDB continuous queries at start")
+	argDropUnknown    = flag.Bool("influxdb_drop_unknown_queries", false, "Drop unknown InfluxDB continuous queries at start")
 )
 
 type InfluxdbSink struct {
@@ -81,6 +81,11 @@ func (self *InfluxdbSink) containerFsStatsToSeries(tableName, hostname, containe
 
 		columns = append(columns, colFsUsage)
 		values = append(values, fsStat.Usage)
+
+		if fsStat.Limit > 0 {
+			columns = append(columns, colFsFreePercent)
+			values = append(values, (fsStat.Limit-fsStat.Usage)*100/fsStat.Limit)
+		}
 
 		columns = append(columns, colFsIoTime)
 		values = append(values, fsStat.IoTime)
@@ -200,7 +205,7 @@ func (self *InfluxdbSink) handleContainers(containers []sources.RawContainer, ta
 		for _, stat := range container.Stats {
 			col, val := self.containerStatsToValues(nil, container.Hostname, container.Name, container.Spec, stat)
 			series = append(series, self.newSeries(tableName, col, val))
-			series = append(series, self.containerFsStatsToSeries(tableName, container.Hostname, container.Name, container.Spec, stat, nil)...)
+			series = append(series, self.containerFsStatsToSeries(fsTable, container.Hostname, container.Name, container.Spec, stat, nil)...)
 		}
 	}
 	return &series
@@ -301,15 +306,19 @@ func recreateContinuousQueries(client *influxdb.Client) {
 		// the queries must be exactly the same as 'list continuous queries' formats them
 		"select container_name,derivative(cpu_cumulative_usage) as cpu_usage from \"stats\" where container_name !~ %s group by time(10s),container_name,hostname into cpu_stats_apps",
 		"select container_name,derivative(cpu_cumulative_usage) as cpu_usage from \"stats\" where container_name =~ %s group by time(10s),container_name,hostname into cpu_stats_infra",
+		"select container_name,mean(memory_usage) as memory_usage from \"stats\" where container_name !~ %s group by time(10s),container_name,hostname into memory_stats_apps",
+		"select container_name,mean(memory_usage) as memory_usage from \"stats\" where container_name =~ %s group by time(10s),container_name,hostname into memory_stats_infra",
 		"select container_name,derivative(rx_bytes + tx_bytes) as net_io from \"stats\" where container_name !~ %s group by time(10s),container_name,hostname into net_stats_apps",
 		"select container_name,derivative(rx_bytes + tx_bytes) as net_io from \"stats\" where container_name =~ %s group by time(10s),container_name,hostname into net_stats_infra",
+		"select container_name,derivative(diskio_service_bytes) as disk_io from \"stats\" where container_name !~ %s group by time(10s),container_name,hostname into disk_stats_apps",
+		"select container_name,derivative(diskio_service_bytes) as disk_io from \"stats\" where container_name =~ %s group by time(10s),container_name,hostname into disk_stats_infra",
 	}
 	queries := make(map[string]string)
 	for _, q := range _queries {
 		queries[seriesName(q)] = fmt.Sprintf(q, infra)
 	}
 	for {
-		time.Sleep(10*time.Second)
+		time.Sleep(10 * time.Second)
 		// GetContinuousQueries -> 404
 		series, err := client.Query("list continuous queries")
 		if err != nil {

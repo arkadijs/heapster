@@ -17,6 +17,7 @@ const (
 	statsTable            = "stats"
 	specTable             = "spec"
 	machineTable          = "machine"
+	fsTable               = "filesystems"
 	colTimestamp          = "time"
 	colPodName            = "pod"
 	colPodStatus          = "pod_status"
@@ -44,6 +45,7 @@ const (
 	colFsDevice           = "fs_device"
 	colFsCapacity         = "fs_capacity"
 	colFsUsage            = "fs_usage"
+	colFsFreePercent      = "fs_free_percent"
 	colFsIoTime           = "fs_iotime"
 	colFsIoTimeWeighted   = "fs_iotime_weighted"
 )
