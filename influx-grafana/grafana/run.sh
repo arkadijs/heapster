@@ -6,7 +6,7 @@ if [ "${HTTP_PASS}" == "**Random**" ]; then
     unset HTTP_PASS
 fi
 
-if [ ! -f /.basic_auth_configured ]; then
+if test ! -f /.basic_auth_configured -a -n "$HTTP_USER"; then
     /set_basic_auth.sh
 fi
 
