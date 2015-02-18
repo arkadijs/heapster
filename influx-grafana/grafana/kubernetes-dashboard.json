@@ -405,10 +405,10 @@
           "targets": [
             {
               "target": "randomWalk('random walk')",
-              "function": "max",
+              "function": "sum",
               "column": "memory_usage",
               "series": "memory_stats_apps",
-              "query": "select container_name, max(memory_usage) from \"memory_stats_apps\" where $timeFilter group by time($interval), container_name order asc",
+              "query": "select container_name, sum(memory_usage) from \"memory_stats_apps\" where $timeFilter group by time($interval), container_name order asc",
               "condition_filter": false,
               "condition": "",
               "interval": "10s",
@@ -733,10 +733,10 @@
           "targets": [
             {
               "target": "randomWalk('random walk')",
-              "function": "max",
+              "function": "sum",
               "column": "memory_usage",
               "series": "memory_stats_infra",
-              "query": "select container_name, max(memory_usage) from \"memory_stats_infra\" where $timeFilter group by time($interval), container_name order asc",
+              "query": "select container_name, sum(memory_usage) from \"memory_stats_infra\" where $timeFilter group by time($interval), container_name order asc",
               "condition_filter": false,
               "condition": "",
               "interval": "10s",
@@ -981,20 +981,20 @@
           "targets": [
             {
               "target": "randomWalk('random walk')",
-              "function": "derivative",
-              "column": "cpu_cumulative_usage",
-              "series": "stats",
-              "query": "select container_name, derivative(cpu_cumulative_usage) from \"stats\" where $timeFilter and labels =~ /name:influxGrafana/ group by time($interval), container_name order asc",
+              "function": "sum",
+              "column": "cpu_usage",
+              "series": "cpu_stats_pods",
+              "query": "select container_name, sum(cpu_usage) from \"cpu_stats_pods\" where $timeFilter and labels =~ /^name:guestbook-/ group by time($interval), container_name order asc",
               "condition_filter": true,
-              "condition": "labels =~ /name:influxGrafana/",
-              "interval": "5s",
+              "condition": "labels =~ /^name:guestbook-/",
+              "interval": "10s",
               "groupby_field_add": true,
               "groupby_field": "container_name",
               "alias": "$g"
             }
           ],
           "aliasColors": {},
-          "title": "Pod 'influx-grafana' CPU usage",
+          "title": "guestbook-* pods CPU usage",
           "datasource": null,
           "renderer": "png",
           "annotate": {
@@ -1059,33 +1059,33 @@
           "targets": [
             {
               "target": "randomWalk('random walk')",
-              "function": "mean",
+              "function": "sum",
               "column": "memory_usage",
-              "series": "stats",
-              "query": "select container_name, mean(memory_usage) from \"stats\" where $timeFilter and labels =~ /name:influxGrafana/ group by time($interval), container_name order asc",
+              "series": "memory_stats_pods",
+              "query": "select container_name, sum(memory_usage) from \"memory_stats_pods\" where $timeFilter and labels =~ /^name:guestbook-/ group by time($interval), container_name order asc",
               "condition_filter": true,
-              "interval": "5s",
+              "condition": "labels =~ /^name:guestbook-/",
+              "interval": "10s",
               "groupby_field_add": true,
               "groupby_field": "container_name",
-              "alias": "$g total",
-              "condition": "labels =~ /name:influxGrafana/"
+              "alias": "$g total"
             },
             {
               "target": "randomWalk('random walk2')",
-              "function": "mean",
+              "function": "sum",
               "column": "memory_working_set",
-              "series": "stats",
-              "query": "select container_name, mean(memory_working_set) from \"stats\" where $timeFilter and labels =~ /name:influxGrafana/ group by time($interval), container_name order asc",
+              "series": "memory_stats_pods",
+              "query": "select container_name, sum(memory_working_set) from \"memory_stats_pods\" where $timeFilter and labels =~ /^name:guestbook-/ group by time($interval), container_name order asc",
               "condition_filter": true,
-              "interval": "5s",
+              "condition": "labels =~ /^name:guestbook-/",
+              "interval": "10s",
               "groupby_field_add": true,
               "groupby_field": "container_name",
-              "alias": "$g hot",
-              "condition": "labels =~ /name:influxGrafana/"
+              "alias": "$g hot"
             }
           ],
           "aliasColors": {},
-          "title": "Pod 'influx-grafana' Memory usage",
+          "title": "guestbook-* pods Memory usage",
           "datasource": null,
           "renderer": "png",
           "annotate": {

@@ -306,8 +306,10 @@ func recreateContinuousQueries(client *influxdb.Client) {
 		// the queries must be exactly the same as 'list continuous queries' formats them
 		"select container_name,derivative(cpu_cumulative_usage) as cpu_usage from \"stats\" where container_name !~ %s group by time(10s),container_name,hostname into cpu_stats_apps",
 		"select container_name,derivative(cpu_cumulative_usage) as cpu_usage from \"stats\" where container_name =~ %s group by time(10s),container_name,hostname into cpu_stats_infra",
+		"select container_name,labels,derivative(cpu_cumulative_usage) as cpu_usage from \"stats\" where pod =~ /.+/ group by time(10s),container_name,labels,hostname into cpu_stats_pods",
 		"select container_name,mean(memory_usage) as memory_usage from \"stats\" where container_name !~ %s group by time(10s),container_name,hostname into memory_stats_apps",
 		"select container_name,mean(memory_usage) as memory_usage from \"stats\" where container_name =~ %s group by time(10s),container_name,hostname into memory_stats_infra",
+		"select container_name,labels,mean(memory_usage) as memory_usage,mean(memory_working_set) as memory_working_set from \"stats\" where pod =~ /.+/ group by time(10s),container_name,labels,hostname into memory_stats_pods",
 		"select container_name,derivative(rx_bytes + tx_bytes) as net_io from \"stats\" where container_name !~ %s group by time(10s),container_name,hostname into net_stats_apps",
 		"select container_name,derivative(rx_bytes + tx_bytes) as net_io from \"stats\" where container_name =~ %s group by time(10s),container_name,hostname into net_stats_infra",
 		"select container_name,derivative(diskio_service_bytes) as disk_io from \"stats\" where container_name !~ %s group by time(10s),container_name,hostname into disk_stats_apps",
@@ -315,7 +317,10 @@ func recreateContinuousQueries(client *influxdb.Client) {
 	}
 	queries := make(map[string]string)
 	for _, q := range _queries {
-		queries[seriesName(q)] = fmt.Sprintf(q, infra)
+		if strings.Contains(q, "%s") {
+			q = fmt.Sprintf(q, infra)
+		}
+		queries[seriesName(q)] = q
 	}
 	for {
 		time.Sleep(10 * time.Second)
