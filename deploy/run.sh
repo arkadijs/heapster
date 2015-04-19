@@ -4,9 +4,9 @@ set -e
 
 KUBE_ARGS=""
 
-if [ ! -z $KUBERNETES_RO_SERVICE_HOST ]; then
+if [ ! -z $KUBERNETES_SERVICE_HOST ]; then
     echo "Detected Kube specific args. Starting in Kube mode."
-    KUBE_ARGS="--kubernetes_master $KUBERNETES_RO_SERVICE_HOST:$KUBERNETES_RO_SERVICE_PORT"
+    KUBE_ARGS="--kubernetes_master $KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT"
 fi
 
 # Check if InfluxDB service is running
