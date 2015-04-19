@@ -11,9 +11,10 @@ import (
 
 	kube_api "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kube_client "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kube_fields "github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	kube_labels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/golang/glog"
-	cadvisor "github.com/google/cadvisor/info"
+	cadvisor "github.com/google/cadvisor/info/v1"
 )
 
 type KubeSource struct {
@@ -31,7 +32,7 @@ func (self *KubeSource) listMinions() (*nodeList, error) {
 		Port:  *argCadvisorPort,
 		Hosts: make(map[string]string, 0),
 	}
-	minions, err := self.client.Nodes().List()
+	minions, err := self.client.Nodes().List(kube_labels.Everything(), kube_fields.Everything())
 	if err != nil {
 		return nil, err
 	}
@@ -50,8 +51,8 @@ func (self *KubeSource) listMinions() (*nodeList, error) {
 func (self *KubeSource) parsePod(pod *kube_api.Pod) *Pod {
 	localPod := Pod{
 		Name:       pod.Name,
-		ID:         pod.UID,
-		Hostname:   pod.Status.Host,
+		ID:         "", //pod.UID,
+		Hostname:   pod.Status.HostIP,
 		Status:     string(pod.Status.Phase),
 		PodIP:      pod.Status.PodIP,
 		Labels:     make(map[string]string, 0),
@@ -93,7 +94,7 @@ func (self *KubeSource) getStatsFromKubelet(hostIP string, podName string, podID
 	if err != nil {
 		return cadvisor.ContainerSpec{}, []*cadvisor.ContainerStats{}, err
 	}
-	url := fmt.Sprintf("http://%s:%s%s", hostIP, self.kubeletPort, filepath.Join("/stats", podName, containerName))
+	url := fmt.Sprintf("https://%s:%s%s", hostIP, self.kubeletPort, filepath.Join("/stats", podName, containerName))
 	if containerName == "/" {
 		url += "/"
 	}
@@ -102,7 +103,7 @@ func (self *KubeSource) getStatsFromKubelet(hostIP string, podName string, podID
 		return cadvisor.ContainerSpec{}, []*cadvisor.ContainerStats{}, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	err = PostRequestAndGetValue(http.DefaultClient, req, &containerInfo)
+	err = PostRequestAndGetValue(req, &containerInfo)
 	if err != nil {
 		glog.Errorf("Failed to get stats from Kubelet `%s`: %v\n", url, err)
 		return cadvisor.ContainerSpec{}, []*cadvisor.ContainerStats{}, nil
@@ -172,7 +173,7 @@ func newKubeSource() (*KubeSource, error) {
 		return nil, fmt.Errorf("kubernetes_master flag not specified")
 	}
 	kubeClient := kube_client.NewOrDie(&kube_client.Config{
-		Host:     "http://" + *argMaster,
+		Host:     "https://" + *argMaster,
 		Version:  "v1beta1",
 		Insecure: true,
 	})

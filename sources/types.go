@@ -2,7 +2,7 @@ package sources
 
 import (
 	"flag"
-	cadvisor "github.com/google/cadvisor/info"
+	cadvisor "github.com/google/cadvisor/info/v1"
 	"time"
 )
 

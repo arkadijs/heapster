@@ -1,13 +1,18 @@
 package sources
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 )
 
-func PostRequestAndGetValue(client *http.Client, req *http.Request, value interface{}) error {
+var client = &http.Client{Transport: &http.Transport{
+	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+}}
+
+func PostRequestAndGetValue(req *http.Request, value interface{}) error {
 	response, err := client.Do(req)
 	if err != nil {
 		return err

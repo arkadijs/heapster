@@ -8,7 +8,7 @@ import (
 
 	"github.com/golang/glog"
 	cadvisorClient "github.com/google/cadvisor/client"
-	cadvisor "github.com/google/cadvisor/info"
+	cadvisor "github.com/google/cadvisor/info/v1"
 )
 
 type cadvisorSource struct {
