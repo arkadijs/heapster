@@ -19,12 +19,10 @@ package json
 import (
 	"bytes"
 	"io/ioutil"
-	"reflect"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta2"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/testapi"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 )
@@ -38,17 +36,17 @@ func TestEncodeDecodeRoundTrip(t *testing.T) {
 		{
 			watch.Added,
 			&api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}},
-			v1beta1.Codec,
+			testapi.Codec(),
 		},
 		{
 			watch.Modified,
 			&api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}},
-			v1beta2.Codec,
+			testapi.Codec(),
 		},
 		{
 			watch.Deleted,
 			&api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}},
-			api.Codec,
+			testapi.Codec(),
 		},
 	}
 	for i, testCase := range testCases {
@@ -66,7 +64,7 @@ func TestEncodeDecodeRoundTrip(t *testing.T) {
 			t.Errorf("%d: unexpected error: %v", i, err)
 			continue
 		}
-		if !reflect.DeepEqual(testCase.Object, obj) {
+		if !api.Semantic.DeepDerivative(testCase.Object, obj) {
 			t.Errorf("%d: expected %#v, got %#v", i, testCase.Object, obj)
 		}
 		if event != testCase.Type {
